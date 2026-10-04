@@ -9,12 +9,18 @@ router.get('/', (req, res) => {
 
 router.post('/', (req, res) => {
     const { name, nivel, verificado } = req.body;
+
+    if (!name || !nivel) {
+        return res.status(400).json({ error: "Nome e nível são obrigatórios." });
+    }
+
     const newAutor = {
         id: db.autores.length + 1,
         name,
         nivel,
-        verified: nivel === 'servidor' ? true : (verificado || false)
+        verificado: nivel === 'servidor' ? true : Boolean(verificado)
     };
+
     db.autores.push(newAutor);
     res.status(201).json(newAutor);
 });
@@ -27,7 +33,7 @@ router.put('/:id', (req, res) => {
     const { name, nivel, verificado } = req.body;
     autor.name = name || autor.name;
     autor.nivel = nivel || autor.nivel;
-    autor.verificado = nivel === 'servidor' ? true : (verificado ?? autor.verified);
+    autor.verificado = nivel === 'servidor' ? true : (verificado ?? autor.verificado);
 
     res.json(autor);
 });
