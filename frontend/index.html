@@ -31,6 +31,12 @@
                     <textarea id="content" placeholder="Descreva os detalhes da notícia..." required></textarea>
                 </div>
 
+                <div class="input-grupo">
+                    <label for="tags">Tags</label>
+                    <input type="text" id="tags" placeholder="Ex: eventos, esporte, avisos">
+                    <small>Separe as tags por vírgulas. Cada notícia pode ter até 10 tags.</small>
+                </div>
+
                 <div class="input-linha">
                     <div class="input-grupo">
                         <label for="autorId">ID do Autor</label>
@@ -50,6 +56,14 @@
 
         <section class="feed-secao">
             <h2>Mural de Avisos</h2>
+            <form id="tagSearchForm" class="tag-search-form">
+                <label for="tagSearch">Pesquisar posts por tag</label>
+                <div class="tag-search-controls">
+                    <input type="search" id="tagSearch" placeholder="Ex: eventos">
+                    <button type="submit" class="btn-primario">Pesquisar</button>
+                    <button type="button" id="clearTagSearch" class="btn-secundario">Limpar</button>
+                </div>
+            </form>
             <div id="postsList" class="lista-posts">
               
             </div>

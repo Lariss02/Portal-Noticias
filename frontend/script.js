@@ -1,5 +1,29 @@
+let postsDoMural = [];
+let comentariosDoMural = [];
+let autoresDoMural = [];
+let tagPesquisada = '';
+
 document.addEventListener('DOMContentLoaded', () => {
     const form = document.getElementById('postForm');
+    const buscaForm = document.getElementById('tagSearchForm');
+    const campoBusca = document.getElementById('tagSearch');
+    const botaoLimparBusca = document.getElementById('clearTagSearch');
+
+    if (buscaForm && campoBusca) {
+        buscaForm.addEventListener('submit', event => {
+            event.preventDefault();
+            tagPesquisada = campoBusca.value.trim();
+            renderizarPosts();
+        });
+    }
+
+    if (botaoLimparBusca && campoBusca) {
+        botaoLimparBusca.addEventListener('click', () => {
+            campoBusca.value = '';
+            tagPesquisada = '';
+            renderizarPosts();
+        });
+    }
 
     if (form) {
         form.addEventListener('submit', async (event) => {
@@ -9,11 +33,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 title: document.getElementById('title').value.trim(),
                 content: document.getElementById('content').value.trim(),
                 autorId: Number(document.getElementById('autorId').value),
-                semana: Number(document.getElementById('semana').value)
+                semana: Number(document.getElementById('semana').value),
+                tags: normalizarTags(document.getElementById('tags').value)
             };
 
             if (!novoPost.title || !novoPost.content || !novoPost.autorId || !novoPost.semana) {
                 alert('Preencha todos os campos antes de publicar.');
+                return;
+            }
+
+            if (novoPost.tags.length > 10 || novoPost.tags.some(tag => tag.length > 30)) {
+                alert('Use no máximo 10 tags, com até 30 caracteres cada.');
                 return;
             }
 
@@ -35,6 +65,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     carregarPosts();
 });
+
+function normalizarTags(valor) {
+    const tags = valor.split(',').map(tag => tag.trim()).filter(Boolean);
+    const tagsVistas = new Set();
+    return tags.filter(tag => {
+        const chave = tag.toLocaleLowerCase();
+        if (tagsVistas.has(chave)) return false;
+        tagsVistas.add(chave);
+        return true;
+    });
+}
 
 async function requisicaoJson(url, options) {
     const resposta = await fetch(url, options);
@@ -68,23 +109,44 @@ async function carregarPosts() {
             throw new Error('O servidor retornou dados inválidos para o mural.');
         }
 
-        container.replaceChildren();
-
-        if (posts.length === 0) {
-            container.appendChild(criarTexto('p', 'post-empty', 'Nenhuma notícia encontrada.'));
-            return;
-        }
-
-        posts.forEach(post => {
-            const autor = autores.find(item => item.id === post.autorId);
-            const comentariosDoPost = comentarios.filter(comentario => comentario.postId === post.id);
-            container.appendChild(criarPost(post, autor, comentariosDoPost, autores));
-        });
+        postsDoMural = posts;
+        comentariosDoMural = comentarios;
+        autoresDoMural = autores;
+        renderizarPosts();
     } catch (erro) {
         container.replaceChildren(
             criarTexto('p', 'post-empty', `Não foi possível carregar o mural: ${erro.message}`)
         );
     }
+}
+
+function renderizarPosts() {
+    const container = document.getElementById('postsList');
+    if (!container) return;
+
+    const tag = tagPesquisada.toLocaleLowerCase();
+    const postsFiltrados = tag
+        ? postsDoMural.filter(post =>
+            (Array.isArray(post.tags) ? post.tags : [])
+                .some(postTag => postTag.toLocaleLowerCase() === tag)
+        )
+        : postsDoMural;
+
+    container.replaceChildren();
+
+    if (postsFiltrados.length === 0) {
+        const mensagem = tag
+            ? `Nenhum post encontrado com a tag "${tagPesquisada}".`
+            : 'Nenhuma notícia encontrada.';
+        container.appendChild(criarTexto('p', 'post-empty', mensagem));
+        return;
+    }
+
+    postsFiltrados.forEach(post => {
+        const autor = autoresDoMural.find(item => item.id === post.autorId);
+        const comentarios = comentariosDoMural.filter(comentario => comentario.postId === post.id);
+        container.appendChild(criarPost(post, autor, comentarios, autoresDoMural));
+    });
 }
 
 function criarPost(post, autor, comentarios, autores) {
@@ -108,11 +170,37 @@ function criarPost(post, autor, comentarios, autores) {
     artigo.append(
         cabecalho,
         criarTexto('p', 'post-conteudo', post.content),
+        criarListaTags(post.tags || []),
         rodape,
         criarSecaoComentarios(post.id, comentarios, autores)
     );
 
     return artigo;
+}
+
+function criarListaTags(tags) {
+    const lista = document.createElement('div');
+    lista.className = 'post-tags';
+    lista.setAttribute('aria-label', 'Tags da notícia');
+
+    if (!Array.isArray(tags)) return lista;
+
+    tags.forEach(tag => {
+        const botao = document.createElement('button');
+        botao.type = 'button';
+        botao.className = 'tag-chip';
+        botao.textContent = `#${tag}`;
+        botao.setAttribute('aria-label', `Pesquisar posts com a tag ${tag}`);
+        botao.addEventListener('click', () => {
+            const campoBusca = document.getElementById('tagSearch');
+            if (campoBusca) campoBusca.value = tag;
+            tagPesquisada = tag;
+            renderizarPosts();
+        });
+        lista.appendChild(botao);
+    });
+
+    return lista;
 }
 
 function criarSecaoComentarios(postId, comentarios, autores) {

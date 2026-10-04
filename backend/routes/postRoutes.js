@@ -7,7 +7,36 @@ router.get('/', (req, res) => {
 });
 
 router.post('/', (req, res) => {
-    const { title, content, autorId, semana } = req.body;
+    const { title, content, autorId, semana, tags } = req.body;
+
+    let tagsNormalizadas;
+    if (tags === undefined) {
+        tagsNormalizadas = [];
+    } else if (typeof tags === 'string') {
+        tagsNormalizadas = tags.split(',');
+    } else if (Array.isArray(tags) && tags.every(tag => typeof tag === 'string')) {
+        tagsNormalizadas = tags;
+    } else {
+        return res.status(400).json({ error: "As tags devem ser enviadas como texto ou uma lista de textos." });
+    }
+
+    tagsNormalizadas = tagsNormalizadas
+        .map(tag => tag.trim())
+        .filter(Boolean);
+
+    const tagsUnicas = [];
+    const tagsVistas = new Set();
+    for (const tag of tagsNormalizadas) {
+        const chave = tag.toLocaleLowerCase();
+        if (!tagsVistas.has(chave)) {
+            tagsVistas.add(chave);
+            tagsUnicas.push(tag);
+        }
+    }
+
+    if (tagsUnicas.length > 10 || tagsUnicas.some(tag => tag.length > 30)) {
+        return res.status(400).json({ error: "Use no máximo 10 tags, com até 30 caracteres cada." });
+    }
 
     const autor = db.autores.find(a => a.id === autorId);
     if (!autor) return res.status(404).json({ error: "Autor não encontrado" });
@@ -28,7 +57,8 @@ router.post('/', (req, res) => {
         title,
         content,
         autorId,
-        semana: semana || 1
+        semana: semana || 1,
+        tags: tagsUnicas
     };
 
     db.posts.push(novoPost);
