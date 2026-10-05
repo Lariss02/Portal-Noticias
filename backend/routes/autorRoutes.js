@@ -38,7 +38,6 @@ router.put('/:id', (req, res) => {
     res.json(autor);
 });
 
-// DELETE (Remover autor)
 router.delete('/:id', (req, res) => {
     const id = parseInt(req.params.id);
     const index = db.autores.findIndex(a => a.id === id);

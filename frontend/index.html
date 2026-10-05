@@ -17,10 +17,11 @@
 
     <main class="main-layout">
         <section class="card-formulario">
-            <h2>Publicar Notícia</h2>
+            <h2 id="postFormTitle">Publicar Notícia</h2>
             <p class="subtitulo-secao">Insira os detalhes do aviso ou evento institucional.</p>
             
             <form id="postForm">
+                <input type="hidden" id="editPostId">
                 <div class="input-grupo">
                     <label for="title">Título da Notícia</label>
                     <input type="text" id="title" placeholder="Ex: Abertura de vagas para projeto" required>
@@ -29,6 +30,12 @@
                 <div class="input-grupo">
                     <label for="content">Conteúdo</label>
                     <textarea id="content" placeholder="Descreva os detalhes da notícia..." required></textarea>
+                </div>
+
+                <div class="input-grupo">
+                    <label for="tags">Tags</label>
+                    <input type="text" id="tags" placeholder="Ex: eventos, esporte, avisos">
+                    <small>Separe as tags por vírgulas. Cada notícia pode ter até 10 tags.</small>
                 </div>
 
                 <div class="input-linha">
@@ -44,12 +51,21 @@
                 </div>
 
                 <button type="submit" class="btn-primario">Publicar Notícia</button>
+                <button type="button" id="cancelEdit" class="btn-secundario btn-cancelar-edicao" hidden>Cancelar edição</button>
             </form>
         </section>
 
 
         <section class="feed-secao">
             <h2>Mural de Avisos</h2>
+            <form id="tagSearchForm" class="tag-search-form">
+                <label for="tagSearch">Pesquisar posts por tag</label>
+                <div class="tag-search-controls">
+                    <input type="search" id="tagSearch" placeholder="Ex: eventos">
+                    <button type="submit" class="btn-primario">Pesquisar</button>
+                    <button type="button" id="clearTagSearch" class="btn-secundario">Limpar</button>
+                </div>
+            </form>
             <div id="postsList" class="lista-posts">
               
             </div>

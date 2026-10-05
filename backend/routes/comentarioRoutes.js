@@ -9,8 +9,18 @@ router.get('/', (req, res) => {
 router.post('/', (req, res) => {
     const { postId, autorId, texto } = req.body;
 
-    if (!postId || !autorId || !texto) {
-        return res.status(400).json({ error: "postId, autorId e texto são obrigatórios." });
+    if (
+        !Number.isInteger(Number(postId)) ||
+        Number(postId) < 1 ||
+        !Number.isInteger(Number(autorId)) ||
+        Number(autorId) < 1 ||
+        typeof texto !== 'string' ||
+        !texto.trim() ||
+        texto.trim().length > 1000
+    ) {
+        return res.status(400).json({
+            error: "postId e autorId devem ser válidos, e o comentário deve ter entre 1 e 1000 caracteres."
+        });
     }
 
     const post = db.posts.find(p => p.id === Number(postId));
@@ -27,7 +37,7 @@ router.post('/', (req, res) => {
         id: db.comentarios.length + 1,
         postId: Number(postId),
         autorId: Number(autorId),
-        texto,
+        texto: texto.trim(),
         autorNome: autor.name
     };
 

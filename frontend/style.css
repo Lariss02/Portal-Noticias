@@ -106,6 +106,8 @@ label {
 
 input[type="text"],
 input[type="number"],
+input[type="search"],
+select,
 textarea {
     width: 100%;
     padding: 0.65rem 0.85rem;
@@ -118,7 +120,7 @@ textarea {
     transition: border-color 0.15s ease-in-out;
 }
 
-input:focus, textarea:focus {
+input:focus, select:focus, textarea:focus {
     outline: none;
     border-color: var(--verde-claro);
     background-color: var(--branco);
@@ -201,4 +203,163 @@ textarea {
 .selo-verificado {
     color: var(--verificado-cor);
     font-weight: 600;
+}
+
+.input-grupo small {
+    display: block;
+    margin-top: 0.3rem;
+    color: var(--texto-secundario);
+    font-size: 0.78rem;
+}
+
+.tag-search-form {
+    margin: 0 0 1rem;
+    padding: 1rem;
+    border: 1px solid var(--cinza-borda);
+    border-radius: 6px;
+    background: var(--branco);
+}
+
+.tag-search-controls {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    gap: 0.5rem;
+}
+
+.tag-search-controls .btn-primario {
+    width: auto;
+}
+
+.btn-secundario {
+    padding: 0.65rem 0.85rem;
+    border: 1px solid var(--cinza-borda);
+    border-radius: 4px;
+    background: var(--branco);
+    color: var(--texto-principal);
+    font: inherit;
+    cursor: pointer;
+}
+
+.btn-secundario:hover {
+    background: var(--cinza-fundo);
+}
+
+.btn-cancelar-edicao {
+    width: 100%;
+    margin-top: 0.5rem;
+}
+
+.post-acoes {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 0.75rem;
+}
+
+.post-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-bottom: 1rem;
+}
+
+.tag-chip {
+    padding: 0.2rem 0.55rem;
+    border: 0;
+    border-radius: 999px;
+    background: #e8f5e9;
+    color: var(--verde-ifms);
+    font: inherit;
+    font-size: 0.8rem;
+    cursor: pointer;
+}
+
+.tag-chip:hover {
+    background: #c8e6c9;
+}
+
+.comentarios-secao {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid #e5e7eb;
+}
+
+.comentarios-titulo {
+    margin-bottom: 0.75rem;
+    font-size: 0.95rem;
+    color: var(--texto-principal);
+}
+
+.comentarios-lista {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+    margin-bottom: 1rem;
+    list-style: none;
+}
+
+.comentario-item {
+    padding: 0.65rem 0.75rem;
+    border-radius: 4px;
+    background: #f9fafb;
+    overflow-wrap: anywhere;
+}
+
+.comentario-item strong {
+    display: block;
+    margin-bottom: 0.2rem;
+    font-size: 0.85rem;
+}
+
+.comentario-item p,
+.comentario-vazio,
+.comentario-status {
+    color: var(--texto-secundario);
+    font-size: 0.85rem;
+    overflow-wrap: anywhere;
+}
+
+.comentario-form {
+    display: grid;
+    gap: 0.5rem;
+}
+
+.comentario-form label {
+    margin: 0;
+}
+
+.comentario-form textarea {
+    min-height: 64px;
+    height: auto;
+}
+
+.btn-comentario {
+    justify-self: start;
+    padding: 0.5rem 0.9rem;
+    border: 0;
+    border-radius: 4px;
+    background-color: var(--verde-claro);
+    color: var(--branco);
+    font: inherit;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.btn-comentario:hover:not(:disabled) {
+    background-color: var(--verde-hover);
+}
+
+.btn-comentario:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+@media (max-width: 520px) {
+    .tag-search-controls {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .tag-search-controls input {
+        grid-column: 1 / -1;
+    }
 }
