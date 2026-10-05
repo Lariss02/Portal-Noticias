@@ -79,10 +79,21 @@ function normalizarTags(valor) {
 
 async function requisicaoJson(url, options) {
     const resposta = await fetch(url, options);
-    const dados = await resposta.json().catch(() => null);
+    const textoResposta = await resposta.text();
+    let dados = null;
+
+    if (textoResposta) {
+        try {
+            dados = JSON.parse(textoResposta);
+        } catch {
+            if (resposta.ok) {
+                throw new Error('O servidor retornou uma resposta inválida.');
+            }
+        }
+    }
 
     if (!resposta.ok) {
-        throw new Error(dados?.error || 'Não foi possível concluir a solicitação.');
+        throw new Error(dados?.error || `O servidor respondeu com erro HTTP ${resposta.status}.`);
     }
 
     if (dados === null) {

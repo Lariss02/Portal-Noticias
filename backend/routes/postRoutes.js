@@ -7,7 +7,21 @@ router.get('/', (req, res) => {
 });
 
 router.post('/', (req, res) => {
-    const { title, content, autorId, semana, tags } = req.body;
+    const { title, content, autorId, semana, tags } = req.body || {};
+
+    if (typeof title !== 'string' || !title.trim() || typeof content !== 'string' || !content.trim()) {
+        return res.status(400).json({ error: "Título e conteúdo são obrigatórios." });
+    }
+
+    const autorIdNumerico = Number(autorId);
+    if (!Number.isInteger(autorIdNumerico) || autorIdNumerico < 1) {
+        return res.status(400).json({ error: "O ID do autor deve ser um número inteiro válido." });
+    }
+
+    const semanaNumerica = semana === undefined || semana === null || semana === '' ? 1 : Number(semana);
+    if (!Number.isInteger(semanaNumerica) || semanaNumerica < 1) {
+        return res.status(400).json({ error: "A semana deve ser um número inteiro positivo." });
+    }
 
     let tagsNormalizadas;
     if (tags === undefined) {
@@ -38,7 +52,7 @@ router.post('/', (req, res) => {
         return res.status(400).json({ error: "Use no máximo 10 tags, com até 30 caracteres cada." });
     }
 
-    const autor = db.autores.find(a => a.id === autorId);
+    const autor = db.autores.find(a => a.id === autorIdNumerico);
     if (!autor) return res.status(404).json({ error: "Autor não encontrado" });
 
     if (autor.nivel === 'aluno_comum') {
@@ -46,7 +60,9 @@ router.post('/', (req, res) => {
     }
 
     if (autor.nivel === 'aluno_lider') {
-        const postsDaSemana = db.posts.filter(p => p.autorId === autorId && p.semana === semana);
+        const postsDaSemana = db.posts.filter(p =>
+            p.autorId === autorIdNumerico && Number(p.semana || 1) === semanaNumerica
+        );
         if (postsDaSemana.length >= 2) {
             return res.status(422).json({ error: "Limite atingido: Alunos líderes podem publicar no máximo 2 posts por semana." });
         }
@@ -54,10 +70,10 @@ router.post('/', (req, res) => {
 
     const novoPost = {
         id: db.posts.length + 1,
-        title,
-        content,
-        autorId,
-        semana: semana || 1,
+        title: title.trim(),
+        content: content.trim(),
+        autorId: autorIdNumerico,
+        semana: semanaNumerica,
         tags: tagsUnicas
     };
 
