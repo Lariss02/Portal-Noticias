@@ -81,6 +81,81 @@ router.post('/', (req, res) => {
     res.status(201).json(novoPost);
 });
 
+router.put('/:id', (req, res) => {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id) || id < 1) {
+        return res.status(400).json({ error: "ID da notícia inválido." });
+    }
+
+    const post = db.posts.find(item => item.id === id);
+    if (!post) return res.status(404).json({ error: "Post não encontrado." });
+
+    const { title, content, autorId, semana, tags } = req.body || {};
+    if (typeof title !== 'string' || !title.trim() || typeof content !== 'string' || !content.trim()) {
+        return res.status(400).json({ error: "Título e conteúdo são obrigatórios." });
+    }
+
+    const autorIdNumerico = Number(autorId);
+    if (!Number.isInteger(autorIdNumerico) || autorIdNumerico < 1) {
+        return res.status(400).json({ error: "O ID do autor deve ser um número inteiro válido." });
+    }
+    if (autorIdNumerico !== post.autorId) {
+        return res.status(403).json({ error: "Somente o autor da notícia pode editá-la." });
+    }
+
+    const semanaNumerica = semana === undefined || semana === null || semana === '' ? 1 : Number(semana);
+    if (!Number.isInteger(semanaNumerica) || semanaNumerica < 1) {
+        return res.status(400).json({ error: "A semana deve ser um número inteiro positivo." });
+    }
+
+    let tagsNormalizadas;
+    if (tags === undefined) {
+        tagsNormalizadas = [];
+    } else if (typeof tags === 'string') {
+        tagsNormalizadas = tags.split(',');
+    } else if (Array.isArray(tags) && tags.every(tag => typeof tag === 'string')) {
+        tagsNormalizadas = tags;
+    } else {
+        return res.status(400).json({ error: "As tags devem ser enviadas como texto ou uma lista de textos." });
+    }
+
+    const tagsUnicas = [];
+    const tagsVistas = new Set();
+    for (const tag of tagsNormalizadas.map(item => item.trim()).filter(Boolean)) {
+        const chave = tag.toLocaleLowerCase();
+        if (!tagsVistas.has(chave)) {
+            tagsVistas.add(chave);
+            tagsUnicas.push(tag);
+        }
+    }
+    if (tagsUnicas.length > 10 || tagsUnicas.some(tag => tag.length > 30)) {
+        return res.status(400).json({ error: "Use no máximo 10 tags, com até 30 caracteres cada." });
+    }
+
+    const autor = db.autores.find(item => item.id === autorIdNumerico);
+    if (!autor) return res.status(404).json({ error: "Autor não encontrado." });
+
+    if (autor.nivel === 'aluno_lider') {
+        const postsDaSemana = db.posts.filter(item =>
+            item.id !== id &&
+            item.autorId === autorIdNumerico &&
+            Number(item.semana || 1) === semanaNumerica
+        );
+        if (postsDaSemana.length >= 2) {
+            return res.status(422).json({
+                error: "Limite atingido: Alunos líderes podem ter no máximo 2 posts por semana."
+            });
+        }
+    }
+
+    post.title = title.trim();
+    post.content = content.trim();
+    post.semana = semanaNumerica;
+    post.tags = tagsUnicas;
+
+    return res.json(post);
+});
+
 router.delete('/:id', (req, res) => {
     const id = parseInt(req.params.id);
     const index = db.posts.findIndex(p => p.id === id);

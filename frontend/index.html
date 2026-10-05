@@ -17,10 +17,11 @@
 
     <main class="main-layout">
         <section class="card-formulario">
-            <h2>Publicar Notícia</h2>
+            <h2 id="postFormTitle">Publicar Notícia</h2>
             <p class="subtitulo-secao">Insira os detalhes do aviso ou evento institucional.</p>
             
             <form id="postForm">
+                <input type="hidden" id="editPostId">
                 <div class="input-grupo">
                     <label for="title">Título da Notícia</label>
                     <input type="text" id="title" placeholder="Ex: Abertura de vagas para projeto" required>
@@ -50,6 +51,7 @@
                 </div>
 
                 <button type="submit" class="btn-primario">Publicar Notícia</button>
+                <button type="button" id="cancelEdit" class="btn-secundario btn-cancelar-edicao" hidden>Cancelar edição</button>
             </form>
         </section>
 

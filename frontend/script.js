@@ -5,9 +5,19 @@ let tagPesquisada = '';
 
 document.addEventListener('DOMContentLoaded', () => {
     const form = document.getElementById('postForm');
+    const campoAutor = document.getElementById('autorId');
     const buscaForm = document.getElementById('tagSearchForm');
     const campoBusca = document.getElementById('tagSearch');
     const botaoLimparBusca = document.getElementById('clearTagSearch');
+    const botaoCancelarEdicao = document.getElementById('cancelEdit');
+
+    if (campoAutor) {
+        campoAutor.addEventListener('input', renderizarPosts);
+    }
+
+    if (botaoCancelarEdicao) {
+        botaoCancelarEdicao.addEventListener('click', () => encerrarEdicao());
+    }
 
     if (buscaForm && campoBusca) {
         buscaForm.addEventListener('submit', event => {
@@ -48,14 +58,20 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             try {
-                await requisicaoJson('/posts', {
-                    method: 'POST',
+                const postEmEdicao = document.getElementById('editPostId').value;
+                const editando = Boolean(postEmEdicao);
+                await requisicaoJson(editando ? `/posts/${postEmEdicao}` : '/posts', {
+                    method: editando ? 'PUT' : 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(novoPost)
                 });
 
-                alert('Post publicado com sucesso!');
-                form.reset();
+                alert(editando ? 'Notícia atualizada com sucesso!' : 'Post publicado com sucesso!');
+                if (editando) {
+                    encerrarEdicao();
+                } else {
+                    form.reset();
+                }
                 await carregarPosts();
             } catch (erro) {
                 alert(`Erro: ${erro.message}`);
@@ -156,11 +172,18 @@ function renderizarPosts() {
     postsFiltrados.forEach(post => {
         const autor = autoresDoMural.find(item => item.id === post.autorId);
         const comentarios = comentariosDoMural.filter(comentario => comentario.postId === post.id);
-        container.appendChild(criarPost(post, autor, comentarios, autoresDoMural));
+        const autorAtual = Number(document.getElementById('autorId')?.value);
+        container.appendChild(criarPost(
+            post,
+            autor,
+            comentarios,
+            autoresDoMural,
+            autorAtual === post.autorId
+        ));
     });
 }
 
-function criarPost(post, autor, comentarios, autores) {
+function criarPost(post, autor, comentarios, autores, podeEditar) {
     const artigo = document.createElement('article');
     artigo.className = 'post-card';
 
@@ -178,15 +201,59 @@ function criarPost(post, autor, comentarios, autores) {
         criarTexto('span', 'selo-verificado', autor?.verificado ? 'Verificado' : 'Publicação')
     );
 
+    const acoes = document.createElement('div');
+    acoes.className = 'post-acoes';
+    if (podeEditar) {
+        const botaoEditar = document.createElement('button');
+        botaoEditar.type = 'button';
+        botaoEditar.className = 'btn-secundario';
+        botaoEditar.textContent = 'Editar notícia';
+        botaoEditar.addEventListener('click', () => iniciarEdicao(post));
+        acoes.appendChild(botaoEditar);
+    }
+
     artigo.append(
         cabecalho,
         criarTexto('p', 'post-conteudo', post.content),
         criarListaTags(post.tags || []),
         rodape,
+        acoes,
         criarSecaoComentarios(post.id, comentarios, autores)
     );
 
     return artigo;
+}
+
+function iniciarEdicao(post) {
+    const autorId = document.getElementById('autorId');
+    if (Number(autorId.value) !== post.autorId) {
+        alert('Informe o ID do autor desta notícia para editá-la.');
+        return;
+    }
+
+    document.getElementById('editPostId').value = post.id;
+    document.getElementById('title').value = post.title;
+    document.getElementById('content').value = post.content;
+    document.getElementById('tags').value = (post.tags || []).join(', ');
+    document.getElementById('semana').value = post.semana || 1;
+    autorId.readOnly = true;
+    document.getElementById('postFormTitle').textContent = 'Editar Notícia';
+
+    const botaoEnviar = document.querySelector('#postForm button[type="submit"]');
+    botaoEnviar.textContent = 'Salvar alterações';
+    document.getElementById('cancelEdit').hidden = false;
+    document.getElementById('postForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function encerrarEdicao() {
+    const form = document.getElementById('postForm');
+    form.reset();
+    document.getElementById('editPostId').value = '';
+    document.getElementById('autorId').readOnly = false;
+    document.getElementById('postFormTitle').textContent = 'Publicar Notícia';
+    form.querySelector('button[type="submit"]').textContent = 'Publicar Notícia';
+    document.getElementById('cancelEdit').hidden = true;
+    renderizarPosts();
 }
 
 function criarListaTags(tags) {
