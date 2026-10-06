@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meu perfil | Portal de Notícias</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header class="site-header">
+        <div class="header-container">
+            <span class="marca-sistema">IFMS // Portal de Notícias</span>
+            <nav class="menu">
+                <a href="index.html">Notícias</a>
+                <a href="perfil.html">Perfil</a>
+                <a href="cadastro.html">Entrar</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="main-layout">
+        <section class="card-formulario">
+            <div id="dados"></div>
+            <button type="button" class="btn-secundario" onclick="mudarNome()">Mudar nome</button>
+            <button type="button" class="btn-secundario" onclick="sair()">Sair</button>
+            <button type="button" class="btn-secundario" onclick="excluirConta()">Excluir minha conta</button>
+        </section>
+    </main>
+
+    <script src="comum.js"></script>
+    <script src="perfil.js"></script>
+</body>
+</html>
