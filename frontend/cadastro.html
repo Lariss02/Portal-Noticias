@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Entrar | Portal de Notícias</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header class="site-header">
+        <div class="header-container">
+            <span class="marca-sistema">IFMS // Portal de Notícias</span>
+            <nav class="menu">
+                <a href="index.html">Notícias</a>
+                <a href="perfil.html">Perfil</a>
+                <a href="cadastro.html">Entrar</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="main-layout">
+        <section class="card-formulario">
+            <h2>Entrar</h2>
+            <form onsubmit="fazerLogin(event)">
+                <div class="input-grupo">
+                    <label for="loginEmail">E-mail</label>
+                    <input type="email" id="loginEmail" required>
+                </div>
+                <div class="input-grupo">
+                    <label for="loginSenha">Senha</label>
+                    <input type="password" id="loginSenha" required>
+                </div>
+                <button type="submit" class="btn-primario">Entrar</button>
+            </form>
+        </section>
+
+        <section class="card-formulario">
+            <h2>Criar conta</h2>
+            <form onsubmit="cadastrar(event)">
+                <div class="input-grupo">
+                    <label for="cadNome">Nome</label>
+                    <input type="text" id="cadNome" required>
+                </div>
+                <div class="input-grupo">
+                    <label for="cadEmail">E-mail</label>
+                    <input type="email" id="cadEmail" required>
+                </div>
+                <div class="input-grupo">
+                    <label for="cadSenha">Senha</label>
+                    <input type="password" id="cadSenha" required>
+                </div>
+                <div class="input-grupo">
+                    <label for="cadNivel">Eu sou</label>
+                    <select id="cadNivel">
+                        <option value="aluno_comum">Aluno</option>
+                        <option value="aluno_lider">Representante de sala</option>
+                        <option value="servidor">Servidor</option>
+                    </select>
+                </div>
+                <div class="input-grupo">
+                    <label for="cadCodigo">Código de verificação</label>
+                    <input type="text" id="cadCodigo" placeholder="Só para representante e servidor">
+                </div>
+                <button type="submit" class="btn-primario">Criar conta</button>
+            </form>
+        </section>
+    </main>
+
+    <script src="comum.js"></script>
+    <script src="cadastro.js"></script>
+</body>
+</html>
