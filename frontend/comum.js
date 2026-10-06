@@ -6,5 +6,9 @@ async function chamar(url, options = {}) {
     const dados = texto ? JSON.parse(texto) : null;
     if (!resposta.ok) throw new Error(dados?.error || 'Erro no servidor.');
     return dados;
-}
-;
+};
+function esc(texto) {
+    const div = document.createElement('div');
+    div.textContent = texto;
+    return div.innerHTML;
+};
