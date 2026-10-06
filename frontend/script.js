@@ -1,404 +1,115 @@
-let postsDoMural = [];
-let comentariosDoMural = [];
-let autoresDoMural = [];
-let tagPesquisada = '';
+let posts = [];
+let comentarios = [];
 
-document.addEventListener('DOMContentLoaded', () => {
-    const form = document.getElementById('postForm');
-    const campoAutor = document.getElementById('autorId');
-    const buscaForm = document.getElementById('tagSearchForm');
-    const campoBusca = document.getElementById('tagSearch');
-    const botaoLimparBusca = document.getElementById('clearTagSearch');
-    const botaoCancelarEdicao = document.getElementById('cancelEdit');
+const logado = usuario !== null;
+const ehServidor = logado && usuario.nivel === 'servidor';
+const podePublicar = logado && usuario.nivel !== 'aluno_comum';
 
-    if (campoAutor) {
-        campoAutor.addEventListener('input', renderizarPosts);
-    }
+document.getElementById('postForm').hidden = !podePublicar;
+document.getElementById('avisoPublicar').hidden = podePublicar;
 
-    if (botaoCancelarEdicao) {
-        botaoCancelarEdicao.addEventListener('click', () => encerrarEdicao());
-    }
+async function carregar() {
+    const tag = document.getElementById('tagSearch').value.trim();
+    posts = await chamar('/posts?tag=' + encodeURIComponent(tag));
+    comentarios = await chamar('/comentarios');
 
-    if (buscaForm && campoBusca) {
-        buscaForm.addEventListener('submit', event => {
-            event.preventDefault();
-            tagPesquisada = campoBusca.value.trim();
-            renderizarPosts();
-        });
-    }
+    const html = posts.map(montarPost).join('')
+        || '<p>Nenhuma notícia encontrada.</p>';
 
-    if (botaoLimparBusca && campoBusca) {
-        botaoLimparBusca.addEventListener('click', () => {
-            campoBusca.value = '';
-            tagPesquisada = '';
-            renderizarPosts();
-        });
-    }
-
-    if (form) {
-        form.addEventListener('submit', async (event) => {
-            event.preventDefault();
-
-            const novoPost = {
-                title: document.getElementById('title').value.trim(),
-                content: document.getElementById('content').value.trim(),
-                autorId: Number(document.getElementById('autorId').value),
-                semana: Number(document.getElementById('semana').value),
-                tags: normalizarTags(document.getElementById('tags').value)
-            };
-
-            if (!novoPost.title || !novoPost.content || !novoPost.autorId || !novoPost.semana) {
-                alert('Preencha todos os campos antes de publicar.');
-                return;
-            }
-
-            if (novoPost.tags.length > 10 || novoPost.tags.some(tag => tag.length > 30)) {
-                alert('Use no máximo 10 tags, com até 30 caracteres cada.');
-                return;
-            }
-
-            try {
-                const postEmEdicao = document.getElementById('editPostId').value;
-                const editando = Boolean(postEmEdicao);
-                await requisicaoJson(editando ? `/posts/${postEmEdicao}` : '/posts', {
-                    method: editando ? 'PUT' : 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(novoPost)
-                });
-
-                alert(editando ? 'Notícia atualizada com sucesso!' : 'Post publicado com sucesso!');
-                if (editando) {
-                    encerrarEdicao();
-                } else {
-                    form.reset();
-                }
-                await carregarPosts();
-            } catch (erro) {
-                alert(`Erro: ${erro.message}`);
-            }
-        });
-    }
-
-    carregarPosts();
-});
-
-function normalizarTags(valor) {
-    const tags = valor.split(',').map(tag => tag.trim()).filter(Boolean);
-    const tagsVistas = new Set();
-    return tags.filter(tag => {
-        const chave = tag.toLocaleLowerCase();
-        if (tagsVistas.has(chave)) return false;
-        tagsVistas.add(chave);
-        return true;
-    });
+    document.getElementById('postsList').innerHTML = html;
 }
 
-async function requisicaoJson(url, options) {
-    const resposta = await fetch(url, options);
-    const textoResposta = await resposta.text();
-    let dados = null;
+function montarPost(post) {
+    const ehDono = logado && usuario.id === post.autorId;
 
-    if (textoResposta) {
-        try {
-            dados = JSON.parse(textoResposta);
-        } catch {
-            if (resposta.ok) {
-                throw new Error('O servidor retornou uma resposta inválida.');
-            }
-        }
-    }
+    const botoes = `
+        ${ehDono ? `<button class="btn-secundario" onclick="editarPost(${post.id})">Editar</button>` : ''}
+        ${ehDono || ehServidor ? `<button class="btn-secundario" onclick="apagar('/posts/${post.id}')">Apagar</button>` : ''}`;
 
-    if (!resposta.ok) {
-        throw new Error(dados?.error || `O servidor respondeu com erro HTTP ${resposta.status}.`);
-    }
-
-    if (dados === null) {
-        throw new Error('O servidor retornou uma resposta inválida.');
-    }
-
-    return dados;
+    return `
+        <article class="post-card">
+            <h3 class="post-titulo">${esc(post.title)}</h3>
+            <p class="post-conteudo">${esc(post.content)}</p>
+            <p>${post.tags.map(t => '#' + esc(t)).join(' ')}</p>
+            <p class="post-footer">Autor: ${esc(post.autorNome)}
+                ${post.verificado ? '<span class="selo-verificado">✔ Servidor verificado</span>' : ''}
+            </p>
+            ${botoes}
+            ${montarComentarios(post.id)}
+        </article>`;
 }
 
-async function carregarPosts() {
-    const container = document.getElementById('postsList');
-    if (!container) return;
+function montarComentarios(postId) {
+    const itens = comentarios
+        .filter(c => c.postId === postId)
+        .map(c => `
+            <div class="comentario-item">
+                <strong>${esc(c.autorNome)}</strong>
+                <p>${esc(c.texto)}</p>
+                ${ehServidor || (logado && usuario.id === c.autorId)
+                    ? `<button class="btn-secundario" onclick="apagar('/comentarios/${c.id}')">Apagar</button>` : ''}
+            </div>`)
+        .join('');
 
-    container.innerHTML = '<p class="post-empty">Carregando notícias...</p>';
+    const form = logado
+        ? `<form onsubmit="comentar(event, ${postId})">
+               <textarea required placeholder="Escreva um comentário..."></textarea>
+               <button class="btn-comentario">Comentar</button>
+           </form>`
+        : '<p>Entre na sua conta para comentar.</p>';
 
+    return `<section class="comentarios-secao"><h4>Comentários</h4>${itens}${form}</section>`;
+}
+async function enviar(url, metodo, dados) {
     try {
-        const [posts, comentarios, autores] = await Promise.all([
-            requisicaoJson('/posts'),
-            requisicaoJson('/comentarios'),
-            requisicaoJson('/autores')
-        ]);
-
-        if (!Array.isArray(posts) || !Array.isArray(comentarios) || !Array.isArray(autores)) {
-            throw new Error('O servidor retornou dados inválidos para o mural.');
-        }
-
-        postsDoMural = posts;
-        comentariosDoMural = comentarios;
-        autoresDoMural = autores;
-        renderizarPosts();
+        await chamar(url, { method: metodo, body: JSON.stringify(dados) });
+        carregar();
+        return true;
     } catch (erro) {
-        container.replaceChildren(
-            criarTexto('p', 'post-empty', `Não foi possível carregar o mural: ${erro.message}`)
-        );
+        alert(erro.message);
+        return false;
     }
 }
 
-function renderizarPosts() {
-    const container = document.getElementById('postsList');
-    if (!container) return;
-
-    const tag = tagPesquisada.toLocaleLowerCase();
-    const postsFiltrados = tag
-        ? postsDoMural.filter(post =>
-            (Array.isArray(post.tags) ? post.tags : [])
-                .some(postTag => postTag.toLocaleLowerCase() === tag)
-        )
-        : postsDoMural;
-
-    container.replaceChildren();
-
-    if (postsFiltrados.length === 0) {
-        const mensagem = tag
-            ? `Nenhum post encontrado com a tag "${tagPesquisada}".`
-            : 'Nenhuma notícia encontrada.';
-        container.appendChild(criarTexto('p', 'post-empty', mensagem));
-        return;
-    }
-
-    postsFiltrados.forEach(post => {
-        const autor = autoresDoMural.find(item => item.id === post.autorId);
-        const comentarios = comentariosDoMural.filter(comentario => comentario.postId === post.id);
-        const autorAtual = Number(document.getElementById('autorId')?.value);
-        container.appendChild(criarPost(
-            post,
-            autor,
-            comentarios,
-            autoresDoMural,
-            autorAtual === post.autorId
-        ));
+async function publicar(event) {
+    event.preventDefault();
+    const ok = await enviar('/posts', 'POST', {
+        title: document.getElementById('title').value,
+        content: document.getElementById('content').value,
+        tags: document.getElementById('tags').value,
+        autorId: usuario.id
     });
+    if (ok) event.target.reset();
 }
 
-function criarPost(post, autor, comentarios, autores, podeEditar) {
-    const artigo = document.createElement('article');
-    artigo.className = 'post-card';
+function editarPost(id) {
+    const post = posts.find(p => p.id === id);
+    const title = prompt('Novo título:', post.title);
+    if (!title) return;
+    const content = prompt('Novo conteúdo:', post.content);
+    if (!content) return;
 
-    const cabecalho = document.createElement('div');
-    cabecalho.className = 'post-header';
-    cabecalho.append(
-        criarTexto('h3', 'post-titulo', post.title),
-        criarTexto('span', 'badge-semana', `Semana ${post.semana || 1}`)
-    );
-
-    const rodape = document.createElement('div');
-    rodape.className = 'post-footer';
-    rodape.append(
-        criarTexto('span', '', `Autor: ${autor?.name || `ID ${post.autorId}`}`),
-        criarTexto('span', 'selo-verificado', autor?.verificado ? 'Verificado' : 'Publicação')
-    );
-
-    const acoes = document.createElement('div');
-    acoes.className = 'post-acoes';
-    if (podeEditar) {
-        const botaoEditar = document.createElement('button');
-        botaoEditar.type = 'button';
-        botaoEditar.className = 'btn-secundario';
-        botaoEditar.textContent = 'Editar notícia';
-        botaoEditar.addEventListener('click', () => iniciarEdicao(post));
-        acoes.appendChild(botaoEditar);
-    }
-
-    artigo.append(
-        cabecalho,
-        criarTexto('p', 'post-conteudo', post.content),
-        criarListaTags(post.tags || []),
-        rodape,
-        acoes,
-        criarSecaoComentarios(post.id, comentarios, autores)
-    );
-
-    return artigo;
+    enviar(`/posts/${id}`, 'PUT', { title, content, tags: post.tags.join(','), autorId: usuario.id });
 }
 
-function iniciarEdicao(post) {
-    const autorId = document.getElementById('autorId');
-    if (Number(autorId.value) !== post.autorId) {
-        alert('Informe o ID do autor desta notícia para editá-la.');
-        return;
-    }
-
-    document.getElementById('editPostId').value = post.id;
-    document.getElementById('title').value = post.title;
-    document.getElementById('content').value = post.content;
-    document.getElementById('tags').value = (post.tags || []).join(', ');
-    document.getElementById('semana').value = post.semana || 1;
-    autorId.readOnly = true;
-    document.getElementById('postFormTitle').textContent = 'Editar Notícia';
-
-    const botaoEnviar = document.querySelector('#postForm button[type="submit"]');
-    botaoEnviar.textContent = 'Salvar alterações';
-    document.getElementById('cancelEdit').hidden = false;
-    document.getElementById('postForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
+function comentar(event, postId) {
+    event.preventDefault();
+    const texto = event.target.querySelector('textarea').value;
+    enviar('/comentarios', 'POST', { postId, autorId: usuario.id, texto });
 }
 
-function encerrarEdicao() {
-    const form = document.getElementById('postForm');
-    form.reset();
-    document.getElementById('editPostId').value = '';
-    document.getElementById('autorId').readOnly = false;
-    document.getElementById('postFormTitle').textContent = 'Publicar Notícia';
-    form.querySelector('button[type="submit"]').textContent = 'Publicar Notícia';
-    document.getElementById('cancelEdit').hidden = true;
-    renderizarPosts();
+function apagar(url) {
+    if (confirm('Tem certeza?')) enviar(url + '?autorId=' + usuario.id, 'DELETE');
 }
 
-function criarListaTags(tags) {
-    const lista = document.createElement('div');
-    lista.className = 'post-tags';
-    lista.setAttribute('aria-label', 'Tags da notícia');
-
-    if (!Array.isArray(tags)) return lista;
-
-    tags.forEach(tag => {
-        const botao = document.createElement('button');
-        botao.type = 'button';
-        botao.className = 'tag-chip';
-        botao.textContent = `#${tag}`;
-        botao.setAttribute('aria-label', `Pesquisar posts com a tag ${tag}`);
-        botao.addEventListener('click', () => {
-            const campoBusca = document.getElementById('tagSearch');
-            if (campoBusca) campoBusca.value = tag;
-            tagPesquisada = tag;
-            renderizarPosts();
-        });
-        lista.appendChild(botao);
-    });
-
-    return lista;
+function buscar(event) {
+    event.preventDefault();
+    carregar();
 }
 
-function criarSecaoComentarios(postId, comentarios, autores) {
-    const secao = document.createElement('section');
-    secao.className = 'comentarios-secao';
-    secao.setAttribute('aria-label', 'Comentários da notícia');
-    secao.appendChild(criarTexto('h4', 'comentarios-titulo', 'Comentários'));
-
-    const lista = document.createElement('ul');
-    lista.className = 'comentarios-lista';
-
-    if (comentarios.length === 0) {
-        lista.appendChild(criarTexto('li', 'comentario-vazio', 'Ainda não há comentários.'));
-    } else {
-        comentarios.forEach(comentario => adicionarComentario(lista, comentario));
-    }
-
-    secao.appendChild(lista);
-
-    const form = document.createElement('form');
-    form.className = 'comentario-form';
-
-    const autorLabel = document.createElement('label');
-    const autorId = `comentario-autor-${postId}`;
-    autorLabel.htmlFor = autorId;
-    autorLabel.textContent = 'Seu nome';
-
-    const seletorAutor = document.createElement('select');
-    seletorAutor.id = autorId;
-    seletorAutor.name = 'autorId';
-    seletorAutor.required = true;
-
-    if (autores.length === 0) {
-        seletorAutor.appendChild(new Option('Nenhum autor disponível', ''));
-        seletorAutor.disabled = true;
-    } else {
-        autores.forEach(autor => seletorAutor.add(new Option(autor.name, autor.id)));
-    }
-
-    const textoLabel = document.createElement('label');
-    const textoId = `comentario-texto-${postId}`;
-    textoLabel.htmlFor = textoId;
-    textoLabel.textContent = 'Escreva um comentário';
-
-    const texto = document.createElement('textarea');
-    texto.id = textoId;
-    texto.name = 'texto';
-    texto.rows = 2;
-    texto.maxLength = 1000;
-    texto.placeholder = 'Compartilhe sua opinião...';
-    texto.required = true;
-    texto.disabled = autores.length === 0;
-
-    const botao = document.createElement('button');
-    botao.type = 'submit';
-    botao.className = 'btn-comentario';
-    botao.textContent = 'Comentar';
-    botao.disabled = autores.length === 0;
-
-    const status = document.createElement('p');
-    status.className = 'comentario-status';
-    status.setAttribute('role', 'status');
-    status.setAttribute('aria-live', 'polite');
-
-    form.append(autorLabel, seletorAutor, textoLabel, texto, botao, status);
-    form.addEventListener('submit', async event => {
-        event.preventDefault();
-        const conteudo = texto.value.trim();
-
-        if (!conteudo) {
-            status.textContent = 'Digite um comentário antes de enviar.';
-            return;
-        }
-
-        botao.disabled = true;
-        status.textContent = 'Enviando comentário...';
-
-        try {
-            const comentario = await requisicaoJson('/comentarios', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    postId,
-                    autorId: Number(seletorAutor.value),
-                    texto: conteudo
-                })
-            });
-
-            lista.querySelector('.comentario-vazio')?.remove();
-            adicionarComentario(lista, comentario);
-            texto.value = '';
-            status.textContent = 'Comentário adicionado.';
-        } catch (erro) {
-            status.textContent = `Não foi possível adicionar o comentário: ${erro.message}`;
-        } finally {
-            botao.disabled = autores.length === 0;
-        }
-    });
-
-    secao.appendChild(form);
-    return secao;
+function limparBusca() {
+    document.getElementById('tagSearch').value = '';
+    carregar();
 }
 
-function adicionarComentario(lista, comentario) {
-    const item = document.createElement('li');
-    item.className = 'comentario-item';
-
-    const autor = document.createElement('strong');
-    autor.textContent = comentario.autorNome || `Autor ${comentario.autorId}`;
-
-    const texto = document.createElement('p');
-    texto.textContent = comentario.texto;
-
-    item.append(autor, texto);
-    lista.appendChild(item);
-}
-
-function criarTexto(tag, className, texto) {
-    const elemento = document.createElement(tag);
-    if (className) elemento.className = className;
-    elemento.textContent = texto ?? '';
-    return elemento;
-}
+carregar();
