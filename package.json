@@ -1,10 +1,17 @@
 {
   "name": "portal-noticias",
   "version": "1.0.0",
-  "description": "",
+  "description": "Portal demonstrativo de notícias e avisos para a comunidade escolar do IFMS.",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "db:up": "docker start Portal-Noticias || docker run -d --name Portal-Noticias -p 127.0.0.1:27017:27017 -v Portal-Noticias-data:/data/db mongo:8",
+    "db:down": "docker stop Portal-Noticias",
+    "db:logs": "docker logs -f Portal-Noticias",
+    "db:reset": "docker rm -f Portal-Noticias; docker volume rm Portal-Noticias-data",
+    "predev": "npm run db:up",
+    "dev": "node --watch src/server.js",
+    "start": "node src/server.js"
   },
   "repository": {
     "type": "git",
