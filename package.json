@@ -4,7 +4,14 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "db:up": "docker start mongo-tarefas || docker run -d --name mongo-tarefas -p 127.0.0.1:27017:27017 -v mongo-tarefas-data:/data/db mongo:8",
+    "db:down": "docker stop mongo-tarefas",
+    "db:logs": "docker logs -f mongo-tarefas",
+    "db:reset": "docker rm -f mongo-tarefas; docker volume rm mongo-tarefas-data",
+    "predev": "npm run db:up",
+    "dev": "node --watch src/server.js",
+    "start": "node src/server.js"
   },
   "repository": {
     "type": "git",
@@ -13,12 +20,13 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "commonjs",
+  "type": "module",
   "bugs": {
     "url": "https://github.com/Lariss02/Portal-Noticias/issues"
   },
   "homepage": "https://github.com/Lariss02/Portal-Noticias#readme",
   "dependencies": {
-    "express": "^5.2.1"
+    "express": "^5.2.1",
+    "mongodb": "^7.8.0"
   }
 }
