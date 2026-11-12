@@ -24,38 +24,30 @@ frontend/                     Páginas e scripts da interface
 	cadastro.html               Cadastro e login
 	perfil.html                 Perfil, edição de nome e ações de conta
 	comum.js                    Requisições HTTP e escape de texto
-src/backend/
-	server.js                   Inicialização HTTP e conexão com MongoDB
-	app.js                      Configuração do Express e rotas ativas
-	config/db.js                Conexão e acesso à coleção MongoDB
-	routes/tarefas.routes.js    Rotas ativas de tarefas
-	controllers/terefa.controller.js
-	services/tarefas.service.js Validação e operações de tarefas
-	routes/autorRoutes.js       Referência de rotas ainda não integradas
-	routes/postRoutes.js        Referência de rotas ainda não integradas
-	routes/comentarioRoutes.js  Referência de rotas ainda não integradas
+backend/
+	server.js                   Inicialização HTTP e rotas da interface
+	database/db.js              Dados em memória
+	routes/autorRoutes.js       Rotas de autores
+	routes/postRoutes.js        Rotas de posts
+	routes/comentarioRoutes.js  Rotas de comentários
 ```
 
 ## Executar localmente
 
-Requisitos: Node.js com suporte a `--env-file` (Node.js 20.6 ou superior), npm e MongoDB acessível. Configure as variáveis no arquivo `.env`:
-
-```bash
-MONGODB_URI=mongodb://127.0.0.1:27017
-MONGODB_DB_NAME=portal_noticias
-PORT=3000
-```
-
-Não compartilhe credenciais reais nem envie o `.env` ao controle de versão. Instale as dependências e inicie o backend:
+Requisitos: Node.js e npm. O servidor atual mantém seus dados em memória e não precisa de MongoDB nem de variáveis no `.env`.
 
 ```bash
 npm install
-node --env-file=.env src/backend/server.js
+npm start
 ```
 
-O servidor fica em `http://localhost:3000`. Para usar MongoDB local em Docker, os scripts `npm run db:up`, `npm run db:down` e `npm run db:logs` iniciam, param e exibem os logs do container `mongo-tarefas`. `npm run db:reset` remove o container **e o volume de dados**; use-o somente se quiser apagar o banco local.
+Para desenvolvimento com reinicialização automática:
 
-Os scripts `npm run dev` e `npm start` estão configurados para `src/server.js`, caminho que não existe atualmente. O comando de inicialização acima aponta para o arquivo existente em `src/backend/server.js`. O script `npm test` também é apenas um placeholder e não executa testes.
+```bash
+npm run dev
+```
+
+O servidor fica em `http://localhost:3000`. O arquivo `backend/package.json` mantém as rotas CommonJS compatíveis com o projeto, que usa módulos ES em outros pontos. Os scripts de Docker ainda existem, mas não são necessários para este backend.
 
 ## Modelo de dados
 

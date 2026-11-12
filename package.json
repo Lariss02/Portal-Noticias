@@ -9,9 +9,8 @@
     "db:down": "docker stop Portal-Noticias",
     "db:logs": "docker logs -f Portal-Noticias",
     "db:reset": "docker rm -f Portal-Noticias; docker volume rm Portal-Noticias-data",
-    "predev": "npm run db:up",
-    "dev": "node --watch src/server.js",
-    "start": "node src/server.js"
+    "dev": "node --watch backend/server.js",
+    "start": "node backend/server.js"
   },
   "repository": {
     "type": "git",
